@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Acervo Digital</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="lib-header">
+            <svg class="lib-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="4" y="6" width="6" height="20" rx="1" fill="#c9a84c" opacity="0.9"/>
+                <rect x="12" y="9" width="5" height="17" rx="1" fill="#c9a84c" opacity="0.6"/>
+                <rect x="19" y="4" width="9" height="22" rx="1" fill="#c9a84c" opacity="0.4"/>
+                <line x1="4" y1="26" x2="28" y2="26" stroke="#c9a84c" stroke-width="1.5"/>
+            </svg>
+            <h2>Acervo Digital</h2>
+
+        </div>
+
+        <p class="section-label">Adicionar livro</p>
+
+        <input type="hidden" id="livroId">
+        <input type="text" id="nome" placeholder="Título do livro">
+        <input type="number" id="ano" placeholder="Ano de publicação">
+        <button id="btnPrincipal" class="btn-save" onclick="salvar()">Salvar no banco</button>
+
+        <p class="section-label">Na prateleira</p>
+        <ul id="lista"></ul>
+    </div>
+
+    <script>
+        async function carregar() {
+            const res = await fetch('/livros');
+            const livros = await res.json();
+            const lista = document.getElementById('lista');
+            lista.innerHTML = '';
+            if (livros.length === 0) {
+                lista.innerHTML = '<li class="empty">Nenhum livro cadastrado ainda.</li>';
+                return;
+            }
+            livros.forEach(i => {
+                lista.innerHTML += `
+                    <li>
+                        <div class="book-info">
+                            <span class="book-title">${i.nome}</span>
+                            <span class="book-year">${i.ano}</span>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-edit" onclick="prepararEdicao('${i._id}', '${i.nome}', ${i.ano})">✎</button>
+                            <button class="btn-del" onclick="deletar('${i._id}')">✕</button>
+                        </div>
+                    </li>`;
+            });
+        }
+
+        function prepararEdicao(id, nome, ano) {
+            document.getElementById('livroId').value = id;
+            document.getElementById('nome').value = nome;
+            document.getElementById('ano').value = ano;
+            const btn = document.getElementById('btnPrincipal');
+            btn.innerText = "Atualizar livro";
+            btn.classList.add('editing');
+        }
+
+        async function salvar() {
+            const id = document.getElementById('livroId').value;
+            const nome = document.getElementById('nome').value;
+            const ano = document.getElementById('ano').value;
+
+            const url = id ? `/livros/${id}` : '/livros';
+            const method = id ? 'PUT' : 'POST';
+
+            await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, ano })
+            });
+
+            document.getElementById('livroId').value = '';
+            document.getElementById('nome').value = '';
+            document.getElementById('ano').value = '';
+            const btn = document.getElementById('btnPrincipal');
+            btn.innerText = "Salvar no banco";
+            btn.classList.remove('editing');
+
+            carregar();
+        }
+
+        async function deletar(id) {
+            if (confirm("Remover este livro do acervo?")) {
+                await fetch(`/livros/${id}`, { method: 'DELETE' });
+                carregar();
+            }
+        }
+
+        carregar();
+    </script>
+</body>
+</html>
